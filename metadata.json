@@ -1,0 +1,6 @@
+{
+  "name": "Roatán Auténtica — Turismo Cultural y Ecológico",
+  "description": "Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 56% de descuento para locales.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
