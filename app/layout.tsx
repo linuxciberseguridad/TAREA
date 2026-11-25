@@ -26,18 +26,18 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Roatán Auténtica — Turismo Cultural y Ecológico',
   description:
-    'Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 56% de descuento para locales.',
+    'Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 10% de descuento para locales.',
   openGraph: {
     title: 'Roatán Auténtica — Turismo Cultural y Ecológico',
     description:
-      'Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 56% de descuento para locales.',
+      'Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 10% de descuento para locales.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Roatán Auténtica — Turismo Cultural y Ecológico',
     description:
-      'Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 56% de descuento para locales.',
+      'Redescubre tu tierra, enamórate de lo nuestro. Paquetes turísticos accesibles en Roatán con recorridos culturales, playas, manglares, gastronomía isleña y 10% de descuento para locales.',
   },
 };
 

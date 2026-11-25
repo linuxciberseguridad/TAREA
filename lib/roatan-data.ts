@@ -8,8 +8,11 @@ export interface TourPackage {
   id: number;
   code: string;
   numberLabel: string;
+  name: string;
   title: string;
   subtitle: string;
+  dailyCapacity: number;
+  monthlyCapacity: number;
   includes: string;
   includesList: string[];
   itinerarySummary: string;
@@ -59,7 +62,7 @@ export const ASSETS = {
   friedFishLemon: '/assets/aistudio/WhatsApp_Image_2026-11-21_at_11.33.02_AM_76947191.jpeg',
 } as const;
 
-export const LOCAL_DISCOUNT_PERCENT = 56;
+export const LOCAL_DISCOUNT_PERCENT = 10;
 export const HNL_EXCHANGE_RATE = 25.4;
 
 export const COMPANY_INFO = {
@@ -86,7 +89,7 @@ export const COMPANY_INFO = {
     },
     {
       name: 'Honestidad',
-      description: 'Precios transparentes, trato justo con tarifas accesibles y un descuento real del 56% para personas locales.',
+      description: 'Precios transparentes, trato justo con tarifas accesibles y un descuento real del 10% para personas locales.',
     },
     {
       name: 'Amabilidad',
@@ -138,141 +141,150 @@ export const TOUR_PACKAGES: TourPackage[] = [
   {
     id: 1,
     code: 'PAQUETE-01',
-    numberLabel: '01. Paquete 1',
-    title: 'Mirador Las Banderas, Camp Bay y Cultura en Punta Gorda',
-    subtitle: 'Vistas panorámicas, playa virgen y tradición garífuna con música y gastronomía',
+    numberLabel: '3.1. Paquete 1',
+    name: 'Island Soul Escape',
+    title: 'Paquete 1: Island Soul Escape',
+    subtitle: 'Las Banderas, West Bay y Punta Gorda con experiencias culturales y gastronómicas',
+    dailyCapacity: 15,
+    monthlyCapacity: 180,
     includes: 'Transporte, guía turístico y lancha',
     includesList: [
-      'Transporte terrestre climatizado ida y vuelta',
-      'Guía turístico local certificado',
-      'Paseo en lancha tradicional por la costa',
-      'Regreso puntual garantizado al muelle de cruceros',
+      'Incluye transporte, guía turístico y lancha',
+      'Recorrido panorámico por Las Banderas y playa West Bay',
+      'Inmersión en Punta Gorda con experiencias culturales y gastronómicas',
+      'Cupo exclusivo estimado: 15 clientes diarios (180 mensuales)',
     ],
     itinerarySummary:
-      'Salida del muelle hacia Las Banderas para disfrutar de las vistas; luego, Camp Bay; y finaliza en Punta Gorda para disfrutar de la música y la comida. Regreso al muelle de cruceros.',
+      'Ofrece un recorrido por Las Banderas, West Bay y Punta Gorda, incluyendo experiencias culturales y gastronómicas. Salida del muelle y regreso puntual al muelle de cruceros.',
     schedule: '9:00 AM - 2:00 PM',
-    priceUSD: 85,
+    priceUSD: 65,
     image: ASSETS.puntaGordaDock,
     secondaryImage: ASSETS.campBayBeach,
-    highlightFood: 'Sopa marinera tradicional, pescado frito y música garífuna en Punta Gorda',
+    highlightFood: 'Experiencias culturales, música garífuna y gastronomía tradicional en Punta Gorda',
     stops: [
       {
         order: '9:00 AM',
         place: 'Salida del Muelle hacia Las Banderas',
         description:
-          'Recepción en el muelle y ascenso hacia el mirador Las Banderas para disfrutar de las vistas panorámicas de ambos lados de la isla.',
+          'Recepción en el muelle y ascenso hacia el mirador Las Banderas para disfrutar de las vistas panorámicas de la isla.',
       },
       {
         order: '10:30 AM',
-        place: 'Playa Virgen de Camp Bay',
+        place: 'Playa West Bay y Recorrido en Lancha',
         description:
-          'Recorrido en lancha y tiempo para disfrutar de las aguas turquesas y arenas naturales de Camp Bay, la playa más auténtica del este de Roatán.',
+          'Travesía costera y visita a las aguas cristalinas y arenas blancas de West Bay.',
       },
       {
         order: '12:15 PM',
         place: 'Comunidad Garífuna de Punta Gorda',
         description:
-          'Inmersión cultural en el primer asentamiento garífuna de Honduras para disfrutar de los tambores en vivo, el baile y la gastronomía tradicional frente al mar.',
+          'Experiencias culturales y gastronómicas en Punta Gorda para disfrutar de la música tradicional en vivo y la comida típica frente al mar.',
       },
       {
         order: '2:00 PM',
         place: 'Regreso al Muelle de Cruceros',
         description:
-          'Retorno seguro y puntual al muelle de cruceros con recuerdos inolvidables del este de la isla.',
+          'Retorno seguro y puntual al muelle de cruceros.',
       },
     ],
   },
   {
     id: 2,
     code: 'PAQUETE-02',
-    numberLabel: '02. Paquete 2',
-    title: 'Casa de la Cultura, Cocina de Don Jorge, Manglares y Snorkeling',
-    subtitle: 'Identidad histórica, sazón local en French Harbor y aventura ecológica',
+    numberLabel: '3.2. Paquete 2',
+    name: 'Roots & Reefs',
+    title: 'Paquete 2: Roots & Reefs',
+    subtitle: 'Casa de la Cultura, French Harbour, gastronomía local, manglares y snorkeling',
+    dailyCapacity: 12,
+    monthlyCapacity: 144,
     includes: 'Transporte y guía turístico',
     includesList: [
-      'Transporte cómodo durante toda la ruta',
-      'Guía turístico especializado en historia e identidad isleña',
-      'Visita guiada a la Casa de la Cultura y parada en La Cocina de Don Jorge',
-      'Paseo por los canales de manglares y sesión de Snorkeling',
+      'Incluye transporte y guía turístico durante el recorrido',
+      'Visita guiada a la Casa de la Cultura y French Harbour',
+      'Degustación de gastronomía local (La Cocina de Don Jorge)',
+      'Paseo por los manglares y actividad de snorkeling (Cupo: 12 clientes diarios)',
     ],
     itinerarySummary:
-      'Salida del muelle de cruceros hacia la Casa de la Cultura; comida en la cocina de Don Jorge, en French Harbor; y finaliza con un paseo a los manglares y Snorkeling.',
+      'Incluye visita a la Casa de la Cultura, French Harbour, gastronomía local (comida en la cocina de Don Jorge), manglares y actividad de snorkeling.',
     schedule: '9:00 AM - 2:00 PM',
-    priceUSD: 70,
+    priceUSD: 60,
     image: ASSETS.mangrovesTunnel,
     secondaryImage: ASSETS.garifunaHuts,
-    highlightFood: 'Almuerzo criollo auténtico en La Cocina de Don Jorge (French Harbor)',
+    highlightFood: 'Gastronomía local isleña en French Harbour (La Cocina de Don Jorge)',
     stops: [
       {
         order: '9:00 AM',
         place: 'Salida del Muelle hacia la Casa de la Cultura',
         description:
-          'Encuentro en el muelle de cruceros y recorrido hacia la Casa de la Cultura para conocer la historia de las comunidades garífunas, misquitas e isleñas.',
+          'Encuentro en el muelle de cruceros y visita a la Casa de la Cultura para conocer nuestras raíces isleñas y garífunas.',
       },
       {
         order: '11:00 AM',
-        place: 'Comida en La Cocina de Don Jorge (French Harbor)',
+        place: 'French Harbour y Gastronomía Local',
         description:
-          'Parada gastronómica en French Harbor para degustar la auténtica cuchara isleña en La Cocina de Don Jorge: pescado frito, rice and beans y tajadas recién hechas.',
+          'Recorrido por French Harbour y parada gastronómica en La Cocina de Don Jorge para disfrutar del auténtico sabor isleño.',
       },
       {
         order: '12:30 PM',
-        place: 'Paseo a los Manglares y Snorkeling',
+        place: 'Paseo por los Manglares y Snorkeling',
         description:
-          'Travesía por los túneles naturales de manglar rojo y práctica de snorkeling en aguas cristalinas llenas de vida marina.',
+          'Navegación por los túneles naturales de manglares y actividad de snorkeling en el arrecife coralino.',
       },
       {
         order: '2:00 PM',
         place: 'Finalización y Retorno al Muelle',
         description:
-          'Regreso directo al muelle de cruceros o punto de encuentro acordado.',
+          'Regreso directo al muelle de cruceros o punto de encuentro.',
       },
     ],
   },
   {
     id: 3,
     code: 'PAQUETE-03',
-    numberLabel: '03. Paquete 3',
-    title: 'Jardín Botánico, Manawikie y Tarde en View Bay Beach Grill',
-    subtitle: 'Biodiversidad botánica, santuario natural y descanso gastronómico frente al mar',
-    includes: 'Transporte y guía turístico durante todo el recorrido',
+    numberLabel: '3.3. Paquete 3',
+    name: 'Into the Blue',
+    title: 'Paquete 3: Into the Blue',
+    subtitle: 'Experiencia de naturaleza, recorridos por los manglares, snorkeling y playa',
+    dailyCapacity: 12,
+    monthlyCapacity: 144,
+    includes: 'Transporte y guía turístico',
     includesList: [
-      'Transporte privado durante todo el recorrido',
-      'Acompañamiento permanente de guía turístico bilingüe',
-      'Recorrido por el Jardín Botánico y parque ecológico Manawikie',
-      'Estancia de almuerzo y tarde de playa en View Bay Beach Grill',
+      'Incluye transporte y guía turístico durante todo el recorrido',
+      'Experiencia de naturaleza por manglares, Jardín Botánico y Manawikie',
+      'Actividades de snorkeling en aguas cristalinas del arrecife',
+      'Tarde frente al mar en View Bay Beach Grill (Cupo: 12 clientes diarios)',
     ],
     itinerarySummary:
-      'Salida del muelle de cruceros hacia el Jardín Botánico; luego, Manawikie; y finaliza en View Bay Beach Grill para alimentarse y disfrutar la tarde.',
+      'Ofrece una experiencia de naturaleza mediante recorridos por los manglares y actividades de snorkeling, complementado con el Jardín Botánico, Manawikie y View Bay Beach Grill.',
     schedule: '9:00 AM - 2:00 PM',
-    priceUSD: 80,
+    priceUSD: 55,
     image: ASSETS.campBayBeach,
     secondaryImage: ASSETS.friedFishSalad,
-    highlightFood: 'Especialidades del mar en View Bay Beach Grill frente a la bahía',
+    highlightFood: 'Tarde gastronómica frente al mar en View Bay Beach Grill',
     stops: [
       {
         order: '9:00 AM',
-        place: 'Salida del Muelle hacia el Jardín Botánico',
+        place: 'Salida del Muelle e Inmersión Natural',
         description:
-          'Partida desde el muelle de cruceros para explorar senderos de flora tropical, orquídeas, plantas medicinales y árboles frutales nativos de Roatán.',
+          'Partida desde el muelle de cruceros hacia el Jardín Botánico y Manawikie para conectar con la flora y fauna de Roatán.',
       },
       {
         order: '10:45 AM',
-        place: 'Experiencia en Manawikie',
+        place: 'Recorrido por los Manglares y Snorkeling',
         description:
-          'Visita a Manawikie para interactuar con la naturaleza isleña, conocer las raíces culturales locales y admirar la fauna nativa.',
+          'Experiencia de naturaleza navegando por los canales de manglares seguida de actividades de snorkeling en aguas turquesas.',
       },
       {
-        order: '12:15 PM',
+        order: '12:30 PM',
         place: 'View Bay Beach Grill',
         description:
-          'Llegada a View Bay Beach Grill para alimentarse con mariscos frescos frente al mar y disfrutar la brisa de la tarde antes del retorno.',
+          'Parada en View Bay Beach Grill para alimentarse y disfrutar la tarde frente al mar Caribe.',
       },
       {
         order: '2:00 PM',
         place: 'Regreso al Muelle de Cruceros',
         description:
-          'Retorno puntual con acompañamiento del guía turístico hasta la entrada del muelle.',
+          'Retorno puntual con acompañamiento del guía turístico.',
       },
     ],
   },
@@ -283,7 +295,7 @@ export const GASTRONOMY_ITEMS: GastronomyItem[] = [
     id: 'sopa-marinera',
     name: 'Sopa Marinera Isleña con Leche de Coco',
     origin: 'Tradición Garífuna e Isleña · Punta Gorda',
-    tourReference: 'Destacado en Paquete 1 (Punta Gorda)',
+    tourReference: 'Destacado en Paquete 1: Island Soul Escape ($65.00)',
     description:
       'Caldo cremoso preparado a fuego lento con leche de coco recién exprimida, caracol, cangrejo, pescado fresco, plátano, yuca y cilantro ancho.',
     image: ASSETS.seafoodSoup,
@@ -291,8 +303,8 @@ export const GASTRONOMY_ITEMS: GastronomyItem[] = [
   {
     id: 'pescado-don-jorge',
     name: 'Pescado Frito Entero con Rice & Beans y Ensalada',
-    origin: 'La Cocina de Don Jorge · French Harbor',
-    tourReference: 'Destacado en Paquete 2 (French Harbor)',
+    origin: 'La Cocina de Don Jorge · French Harbour',
+    tourReference: 'Destacado en Paquete 2: Roots & Reefs ($60.00)',
     description:
       'Pargo rojo frito al momento hasta lograr una piel dorada y crujiente, acompañado de arroz con frijoles en leche de coco, tajadas de plátano verde y encurtido fresco.',
     image: ASSETS.friedFishSalad,
@@ -301,7 +313,7 @@ export const GASTRONOMY_ITEMS: GastronomyItem[] = [
     id: 'plato-costero-view-bay',
     name: 'Pescado Dorado Isleño con Tajadas y Limón Criollo',
     origin: 'View Bay Beach Grill & Champas Costeras',
-    tourReference: 'Destacado en Paquete 3 (View Bay Beach Grill)',
+    tourReference: 'Destacado en Paquete 3: Into the Blue ($55.00)',
     description:
       'El clásico sabor de las playas de Roatán: pescado entero sazonado con especias isleñas, servido con casamiento caribeño y plátanos fritos junto a la orilla del mar.',
     image: ASSETS.friedFishLemon,
