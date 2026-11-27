@@ -1,55 +1,93 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
-  Compass,
-  Clock,
-  MapPin,
-  Users,
   Check,
   ArrowRight,
-  Utensils,
-  Anchor,
-  Trees,
-  Sparkles,
-  Calendar,
-  Phone,
-  Mail,
   Copy,
   FileDown,
   X,
   ChevronRight,
+  Globe,
 } from 'lucide-react';
 import ResilientImage from './ResilientImage';
+import BookingStyleReviews from './BookingStyleReviews';
 import {
   generateReservationPdf,
   ReservationPdfData,
 } from '@/lib/generate-reservation-pdf';
 import {
   ASSETS,
-  COMPANY_INFO,
-  LOGO_MEANINGS,
-  TOUR_PACKAGES,
-  GASTRONOMY_ITEMS,
-  GALLERY_PHOTOS,
-  CULTURAL_COMMUNITIES,
+  BILINGUAL_CONTENT,
+  Language,
   LOCAL_DISCOUNT_PERCENT,
   calculatePrice,
   GalleryPhoto,
 } from '@/lib/roatan-data';
 
+const LANG_STORAGE_KEY = 'roatan_autentica_lang_v1';
+
 export default function RoatanAutenticaPortal() {
+  // Language state persisted in browser cache (localStorage)
+  const [lang, setLang] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedLang = localStorage.getItem(LANG_STORAGE_KEY);
+        if (savedLang === 'en' || savedLang === 'es') {
+          return savedLang;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return 'es';
+  });
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (
+        e.key === LANG_STORAGE_KEY &&
+        (e.newValue === 'en' || e.newValue === 'es')
+      ) {
+        setLang(e.newValue);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const handleToggleLanguage = () => {
+    const nextLang: Language = lang === 'es' ? 'en' : 'es';
+    setLang(nextLang);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, nextLang);
+    } catch {
+      // ignore
+    }
+  };
+
+  const isEn = lang === 'en';
+  const content = BILINGUAL_CONTENT[lang];
+  const companyInfo = content.companyInfo;
+  const logoMeanings = content.logoMeanings;
+  const tourPackages = content.tourPackages;
+  const gastronomyItems = content.gastronomyItems;
+  const galleryPhotos = content.galleryPhotos;
+  const culturalCommunities = content.culturalCommunities;
+
   // Pricing & Tariff interactive states
   const [isLocalTariff, setIsLocalTariff] = useState<boolean>(false);
   const [currency, setCurrency] = useState<'USD' | 'HNL'>('USD');
 
   // Logo interactive element state
   const [activeLogoElementId, setActiveLogoElementId] = useState<string>(
-    LOGO_MEANINGS[0].id
+    logoMeanings[0].id
   );
 
   // Expanded package itinerary tabs
-  const [activePackageTab, setActivePackageTab] = useState<Record<number, 'recorrido' | 'incluye'>>({
+  const [activePackageTab, setActivePackageTab] = useState<
+    Record<number, 'recorrido' | 'incluye'>
+  >({
     1: 'recorrido',
     2: 'recorrido',
     3: 'recorrido',
@@ -78,17 +116,16 @@ export default function RoatanAutenticaPortal() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   const activeLogoMeaning =
-    LOGO_MEANINGS.find((item) => item.id === activeLogoElementId) ||
-    LOGO_MEANINGS[0];
+    logoMeanings.find((item) => item.id === activeLogoElementId) ||
+    logoMeanings[0];
 
   const filteredGallery =
     galleryFilter === 'todos'
-      ? GALLERY_PHOTOS
-      : GALLERY_PHOTOS.filter((photo) => photo.category === galleryFilter);
+      ? galleryPhotos
+      : galleryPhotos.filter((photo) => photo.category === galleryFilter);
 
   const currentBookingPackage =
-    TOUR_PACKAGES.find((pkg) => pkg.id === selectedPackageId) ||
-    TOUR_PACKAGES[0];
+    tourPackages.find((pkg) => pkg.id === selectedPackageId) || tourPackages[0];
 
   const unitPricing = calculatePrice(
     currentBookingPackage.priceUSD,
@@ -113,12 +150,18 @@ export default function RoatanAutenticaPortal() {
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim() || customerName.trim().length < 3) {
-      setFormError('Por favor ingresa tu nombre completo para la reserva.');
+      setFormError(
+        isEn
+          ? 'Please enter your full name for the reservation.'
+          : 'Por favor ingresa tu nombre completo para la reserva.'
+      );
       return;
     }
     if (!customerContact.trim() || customerContact.trim().length < 6) {
       setFormError(
-        'Por favor ingresa un número de teléfono (WhatsApp) o correo electrónico válido.'
+        isEn
+          ? 'Please enter a valid phone number (WhatsApp) or email address.'
+          : 'Por favor ingresa un número de teléfono (WhatsApp) o correo electrónico válido.'
       );
       return;
     }
@@ -142,6 +185,7 @@ export default function RoatanAutenticaPortal() {
       name: customerName.trim(),
       contact: customerContact.trim(),
       notes: customerNotes.trim(),
+      lang,
     };
 
     setBookingConfirmed(pdfPayload);
@@ -157,7 +201,7 @@ export default function RoatanAutenticaPortal() {
     if (!bookingConfirmed) return;
     setIsGeneratingPdf(true);
     try {
-      await generateReservationPdf(bookingConfirmed);
+      await generateReservationPdf({...bookingConfirmed, lang});
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -165,7 +209,7 @@ export default function RoatanAutenticaPortal() {
 
   const handleCopyReservation = () => {
     if (!bookingConfirmed) return;
-    const summaryText = `Reserva Roatán Auténtica (${bookingConfirmed.code}) - ${bookingConfirmed.packageData.title} | Fecha: ${bookingConfirmed.date} | Hora: ${bookingConfirmed.schedule} | Pasajeros: ${bookingConfirmed.guests} | Total: ${bookingConfirmed.totalFormatted}`;
+    const summaryText = `Reserva Roatán Auténtica (${bookingConfirmed.code}) - ${bookingConfirmed.packageData.title} | ${isEn ? 'Date' : 'Fecha'}: ${bookingConfirmed.date} | ${isEn ? 'Time' : 'Hora'}: ${bookingConfirmed.schedule} | ${isEn ? 'Guests' : 'Pasajeros'}: ${bookingConfirmed.guests} | Total: ${bookingConfirmed.totalFormatted}`;
     navigator.clipboard.writeText(summaryText);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2500);
@@ -173,7 +217,7 @@ export default function RoatanAutenticaPortal() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-stone-900">
-      {/* STRICT 3-ZONE TOP BAR CONTRACT */}
+      {/* TOP BAR WITH LANGUAGE TRANSLATION BUTTON */}
       <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-stone-200/80">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 px-6 py-4">
           {/* Zone 1: Single text element wordmark */}
@@ -186,47 +230,54 @@ export default function RoatanAutenticaPortal() {
           </a>
 
           {/* Zone 2: 5 concise single-line text navigation links */}
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-stone-600">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-600">
             <a
               href="#nosotros"
               className="hover:text-teal-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
-              Nosotros
+              {isEn ? 'About Us' : 'Nosotros'}
             </a>
             <a
               href="#paquetes"
               className="hover:text-teal-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
-              Paquetes
+              {isEn ? 'Packages' : 'Paquetes'}
             </a>
             <a
               href="#cultura"
               className="hover:text-teal-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
-              Cultura y Sabores
+              {isEn ? 'Culture & Food' : 'Cultura y Sabores'}
             </a>
             <a
-              href="#galeria"
+              href="#comentarios"
               className="hover:text-teal-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
-              Galería
+              {isEn ? 'Reviews' : 'Comentarios'}
             </a>
             <a
               href="#reservar"
               className="hover:text-teal-800 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
-              Reservar
+              {isEn ? 'Book Now' : 'Reservar'}
             </a>
           </nav>
 
-          {/* Zone 3: 1 primary action */}
+          {/* Zone 3: Language Translate Button (Requested in Top Bar) */}
           <div className="flex items-center shrink-0">
-            <a
-              href="#reservar"
-              className="px-4 py-2 text-xs font-semibold text-white bg-teal-800 rounded-lg hover:bg-teal-900 transition-colors whitespace-nowrap shrink-0"
+            <button
+              type="button"
+              onClick={handleToggleLanguage}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-teal-800 rounded-lg hover:bg-teal-900 transition-colors whitespace-nowrap shrink-0"
+              aria-label={
+                isEn ? 'Cambiar idioma a Español' : 'Translate page to English'
+              }
             >
-              Reservar Tour
-            </a>
+              <Globe className="w-3.5 h-3.5" />
+              <span>
+                {isEn ? 'Traducir a Español (ES)' : 'Translate to English (EN)'}
+              </span>
+            </button>
           </div>
         </div>
       </header>
@@ -240,12 +291,20 @@ export default function RoatanAutenticaPortal() {
               <div>
                 {/* Clean unboxed metadata with typographic separators */}
                 <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-teal-800 mb-6">
-                  <span>Roatán, Islas de la Bahía</span>
+                  <span>
+                    {isEn ? 'Roatán, Bay Islands' : 'Roatán, Islas de la Bahía'}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>Turismo Cultural y Ecológico</span>
+                  <span>
+                    {isEn
+                      ? 'Cultural & Ecological Tourism'
+                      : 'Turismo Cultural y Ecológico'}
+                  </span>
                   <span aria-hidden="true">·</span>
                   <span className="font-mono tabular-nums">
-                    10% Descuento para Locales
+                    {isEn
+                      ? '10% Discount for Locals'
+                      : '10% Descuento para Locales'}
                   </span>
                 </div>
 
@@ -254,13 +313,15 @@ export default function RoatanAutenticaPortal() {
                   <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border border-stone-200 shrink-0 bg-[#F6F3EC] p-1">
                     <ResilientImage
                       src={ASSETS.logo}
-                      alt="Logo Oficial de Roatán Auténtica — Mujer garífuna con tambor, cayuco y atardecer caribeño"
+                      alt="Logo Oficial de Roatán Auténtica"
                       className="w-full h-full object-contain rounded-full"
                     />
                   </div>
                   <div>
                     <p className="text-xs font-medium text-stone-500 mb-1">
-                      Agencia y Operadora Turística Local
+                      {isEn
+                        ? 'Local Tour Agency & Operator'
+                        : 'Agencia y Operadora Turística Local'}
                     </p>
                     <h1
                       className="text-stone-950 font-bold tracking-tight leading-[1.12]"
@@ -270,13 +331,13 @@ export default function RoatanAutenticaPortal() {
                         textWrap: 'balance',
                       }}
                     >
-                      Redescubre tu tierra, enamórate de lo nuestro.
+                      {companyInfo.slogan}
                     </h1>
                   </div>
                 </div>
 
                 <p className="text-base text-stone-600 leading-relaxed max-w-[65ch] mb-8">
-                  {COMPANY_INFO.whoWeAre}
+                  {companyInfo.whoWeAre}
                 </p>
               </div>
 
@@ -287,19 +348,29 @@ export default function RoatanAutenticaPortal() {
                     href="#paquetes"
                     className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-800 rounded-lg hover:bg-teal-900 transition-colors whitespace-nowrap shrink-0"
                   >
-                    <span>Ver Paquetes Turísticos</span>
+                    <span>
+                      {isEn ? 'Explore Tour Packages' : 'Ver Paquetes Turísticos'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </a>
                   <a
-                    href="#nosotros"
+                    href="#comentarios"
                     className="inline-flex items-center gap-2 px-4 py-3 text-sm font-medium text-stone-700 hover:text-stone-950 transition-colors whitespace-nowrap shrink-0"
                   >
-                    <span>Conocer Nuestro Logo e Historia</span>
+                    <span>
+                      {isEn
+                        ? 'Read Guest Reviews (9.6/10)'
+                        : 'Ver Comentarios (9.6/10)'}
+                    </span>
                   </a>
                 </div>
 
                 <div className="text-xs text-stone-500">
-                  <span>Salidas desde Muelle de Cruceros</span>
+                  <span>
+                    {isEn
+                      ? 'Cruise Port Departures'
+                      : 'Salidas desde Muelle de Cruceros'}
+                  </span>
                   <span aria-hidden="true"> · </span>
                   <span className="font-mono tabular-nums font-semibold text-stone-800">
                     9:00 AM – 2:00 PM
@@ -312,15 +383,19 @@ export default function RoatanAutenticaPortal() {
             <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-stone-200/80 min-h-[380px] lg:h-full">
               <ResilientImage
                 src={ASSETS.campBayBeach}
-                alt="Playa cristalina de Camp Bay en Roatán con aguas turquesas y arrecife rocoso"
+                alt="Playa cristalina en Roatán con aguas turquesas y arrecife rocoso"
                 className="w-full h-full object-cover"
               />
               {/* Measured Contrast Scrim */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col justify-end p-8">
                 <div className="flex items-center gap-2 text-xs text-amber-300 font-medium mb-2">
-                  <span>Costa Virgen de Camp Bay</span>
+                  <span>
+                    {isEn
+                      ? 'Turquoise Coast & Reefs'
+                      : 'Costa Turquesa y Arrecifes'}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>Incluido en Paquete 1</span>
+                  <span>Island Soul Escape · Roots & Reefs · Into the Blue</span>
                 </div>
                 <p
                   className="text-xl font-bold text-white leading-snug mb-2"
@@ -329,10 +404,14 @@ export default function RoatanAutenticaPortal() {
                     textWrap: 'balance',
                   }}
                 >
-                  Playas cristalinas, túneles de manglares y herencia garífuna en un solo recorrido.
+                  {isEn
+                    ? 'Crystal-clear beaches, mangrove tunnels, and Garífuna heritage in one journey.'
+                    : 'Playas cristalinas, túneles de manglares y herencia garífuna en un solo recorrido.'}
                 </p>
                 <p className="text-xs text-stone-200 leading-relaxed">
-                  Experiencias guiadas de 5 horas con transporte, gastronomía isleña y trato cálido por anfitriones de nuestra isla.
+                  {isEn
+                    ? '5-hour guided experiences including transport, island gastronomy, and warm hospitality by local hosts.'
+                    : 'Experiencias guiadas de 5 horas con transporte, gastronomía isleña y trato cálido por anfitriones de nuestra isla.'}
                 </p>
               </div>
             </div>
@@ -342,49 +421,57 @@ export default function RoatanAutenticaPortal() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
             <div className="bg-white border border-stone-200/80 rounded-xl p-5">
               <div className="text-xs text-stone-500 mb-1">
-                Horario Oficial de Recorridos
+                {isEn ? 'Official Tour Schedule' : 'Horario Oficial de Recorridos'}
               </div>
               <div className="text-xl font-bold text-stone-950 font-mono tabular-nums">
                 9:00 AM – 2:00 PM
               </div>
               <p className="text-xs text-stone-600 mt-1">
-                Salida y retorno puntual al muelle de cruceros garantizados.
+                {isEn
+                  ? 'Guaranteed punctual departure and return to the cruise port.'
+                  : 'Salida y retorno puntual al muelle de cruceros garantizados.'}
               </p>
             </div>
 
             <div className="bg-white border border-stone-200/80 rounded-xl p-5">
               <div className="text-xs text-stone-500 mb-1">
-                Descuento para Personas Locales
+                {isEn
+                  ? 'Discount for Local Residents'
+                  : 'Descuento para Personas Locales'}
               </div>
               <div className="text-xl font-bold text-teal-800 font-mono tabular-nums">
-                10% de Descuento
+                {isEn ? '10% Discount' : '10% de Descuento'}
               </div>
               <p className="text-xs text-stone-600 mt-1">
-                Tarifas especiales desde $49.50 USD para residentes y locales.
+                {isEn
+                  ? 'Special rates starting at $49.50 USD for local residents.'
+                  : 'Tarifas especiales desde $49.50 USD para residentes y locales.'}
               </p>
             </div>
 
             <div className="bg-white border border-stone-200/80 rounded-xl p-5">
               <div className="text-xs text-stone-500 mb-1">
-                Paquetes Todo Organizado
+                {isEn ? 'All-Organized Packages' : 'Paquetes Todo Organizado'}
               </div>
               <div className="text-xl font-bold text-stone-950 font-mono tabular-nums">
                 $55.00 – $65.00
               </div>
               <p className="text-xs text-stone-600 mt-1">
-                Island Soul Escape ($65), Roots & Reefs ($60) e Into the Blue ($55).
+                Island Soul Escape ($65), Roots & Reefs ($60) & Into the Blue ($55).
               </p>
             </div>
 
             <div className="bg-white border border-stone-200/80 rounded-xl p-5">
               <div className="text-xs text-stone-500 mb-1">
-                Identidad Cultural Viva
+                {isEn ? 'Living Cultural Identity' : 'Identidad Cultural Viva'}
               </div>
               <div className="text-xl font-bold text-stone-950">
-                3 Comunidades
+                {isEn ? '3 Communities' : '3 Comunidades'}
               </div>
               <p className="text-xs text-stone-600 mt-1">
-                Encuentro auténtico con raíces garífunas, misquitas e isleñas.
+                {isEn
+                  ? 'Authentic encounters with Garífuna, Miskito, and Creole Islander roots.'
+                  : 'Encuentro auténtico con raíces garífunas, misquitas e isleñas.'}
               </p>
             </div>
           </div>
@@ -399,7 +486,9 @@ export default function RoatanAutenticaPortal() {
             {/* Section Header */}
             <div className="max-w-3xl mb-12">
               <div className="flex items-center gap-2 text-xs font-medium text-teal-800 mb-3">
-                <span>01. Nuestra Identidad</span>
+                <span>
+                  {isEn ? '01. Our Identity' : '01. Nuestra Identidad'}
+                </span>
                 <span aria-hidden="true">·</span>
                 <span>Roatán Auténtica</span>
               </div>
@@ -410,10 +499,12 @@ export default function RoatanAutenticaPortal() {
                   textWrap: 'balance',
                 }}
               >
-                ¿Quiénes somos y qué representa nuestro emblema?
+                {isEn
+                  ? 'Who are we and what does our emblem represent?'
+                  : '¿Quiénes somos y qué representa nuestro emblema?'}
               </h2>
               <p className="text-base text-stone-600 leading-relaxed">
-                {COMPANY_INFO.whoWeAre}
+                {companyInfo.whoWeAre}
               </p>
             </div>
 
@@ -430,10 +521,12 @@ export default function RoatanAutenticaPortal() {
                 </div>
                 <div>
                   <div className="text-xs font-medium text-teal-800 mb-2">
-                    Simbolismo Oficial de Roatán Auténtica
+                    {isEn
+                      ? 'Official Symbolism of Roatán Auténtica'
+                      : 'Simbolismo Oficial de Roatán Auténtica'}
                   </div>
                   <p className="text-sm text-stone-700 leading-relaxed">
-                    {COMPANY_INFO.logoStory}
+                    {companyInfo.logoStory}
                   </p>
                 </div>
               </div>
@@ -447,17 +540,21 @@ export default function RoatanAutenticaPortal() {
                         className="text-xl font-bold text-stone-950"
                         style={{fontFamily: 'var(--font-display), serif'}}
                       >
-                        Explora cada elemento de nuestro logo
+                        {isEn
+                          ? 'Explore each element of our official logo'
+                          : 'Explora cada elemento de nuestro logo'}
                       </h3>
                       <p className="text-xs text-stone-500 mt-1">
-                        Selecciona un elemento para conocer cómo inspira nuestros recorridos por la isla.
+                        {isEn
+                          ? 'Click an element to learn how it inspires our island tours.'
+                          : 'Selecciona un elemento para conocer cómo inspira nuestros recorridos por la isla.'}
                       </p>
                     </div>
                   </div>
 
                   {/* Interactive Selector Buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                    {LOGO_MEANINGS.map((item, idx) => {
+                    {logoMeanings.map((item, idx) => {
                       const isActive = item.id === activeLogoElementId;
                       return (
                         <button
@@ -475,7 +572,8 @@ export default function RoatanAutenticaPortal() {
                               isActive ? 'text-teal-200' : 'text-teal-800'
                             }`}
                           >
-                            0{idx + 1}. Elemento Cultural
+                            0{idx + 1}.{' '}
+                            {isEn ? 'Cultural Element' : 'Elemento Cultural'}
                           </div>
                           <div className="text-sm font-semibold">
                             {item.title}
@@ -504,13 +602,19 @@ export default function RoatanAutenticaPortal() {
 
                 <div className="mt-6 pt-4 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-4 text-xs text-stone-500">
                   <span>
-                    Identidad isleña presente en cada paquete turístico
+                    {isEn
+                      ? 'Island heritage present in every tour package'
+                      : 'Identidad isleña presente en cada paquete turístico'}
                   </span>
                   <a
                     href="#cultura"
                     className="font-semibold text-teal-800 hover:underline inline-flex items-center gap-1 whitespace-nowrap shrink-0"
                   >
-                    <span>Ver Comunidades y Gastronomía</span>
+                    <span>
+                      {isEn
+                        ? 'See Communities & Gastronomy'
+                        : 'Ver Comunidades y Gastronomía'}
+                    </span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </a>
                 </div>
@@ -524,20 +628,22 @@ export default function RoatanAutenticaPortal() {
                 <div className="bg-[#FAF8F5] border border-stone-200/80 rounded-2xl p-7 flex flex-col justify-between">
                   <div>
                     <div className="text-xs font-mono tabular-nums text-teal-800 mb-2">
-                      01. Propósito Diario
+                      {isEn ? '01. Daily Purpose' : '01. Propósito Diario'}
                     </div>
                     <h3
                       className="text-xl font-bold text-stone-950 mb-3"
                       style={{fontFamily: 'var(--font-display), serif'}}
                     >
-                      Misión
+                      {isEn ? 'Mission' : 'Misión'}
                     </h3>
                     <p className="text-sm text-stone-600 leading-relaxed">
-                      {COMPANY_INFO.mission}
+                      {companyInfo.mission}
                     </p>
                   </div>
                   <div className="mt-6 pt-4 border-t border-stone-200/60 text-xs text-stone-500">
-                    Calidad y accesibilidad en cada salida desde el muelle.
+                    {isEn
+                      ? 'Quality and accessibility on every departure.'
+                      : 'Calidad y accesibilidad en cada salida desde el muelle.'}
                   </div>
                 </div>
 
@@ -545,39 +651,43 @@ export default function RoatanAutenticaPortal() {
                 <div className="bg-[#FAF8F5] border border-stone-200/80 rounded-2xl p-7 flex flex-col justify-between">
                   <div>
                     <div className="text-xs font-mono tabular-nums text-teal-800 mb-2">
-                      02. Proyección Regional
+                      {isEn ? '02. Regional Outlook' : '02. Proyección Regional'}
                     </div>
                     <h3
                       className="text-xl font-bold text-stone-950 mb-3"
                       style={{fontFamily: 'var(--font-display), serif'}}
                     >
-                      Visión
+                      {isEn ? 'Vision' : 'Visión'}
                     </h3>
                     <p className="text-sm text-stone-600 leading-relaxed">
-                      {COMPANY_INFO.vision}
+                      {companyInfo.vision}
                     </p>
                   </div>
                   <div className="mt-6 pt-4 border-t border-stone-200/60 text-xs text-stone-500">
-                    Impulsando el crecimiento económico y cultural de Roatán.
+                    {isEn
+                      ? 'Driving economic and cultural growth in Roatán.'
+                      : 'Impulsando el crecimiento económico y cultural de Roatán.'}
                   </div>
                 </div>
 
                 {/* Nuestros Valores (Spans 2 columns) */}
                 <div className="sm:col-span-2 bg-[#FAF8F5] border border-stone-200/80 rounded-2xl p-7">
                   <div className="text-xs font-mono tabular-nums text-teal-800 mb-2">
-                    03. Principios que nos Guían
+                    {isEn
+                      ? '03. Guiding Principles'
+                      : '03. Principios que nos Guían'}
                   </div>
                   <h3
                     className="text-xl font-bold text-stone-950 mb-2"
                     style={{fontFamily: 'var(--font-display), serif'}}
                   >
-                    Nuestros Valores
+                    {isEn ? 'Our Values' : 'Nuestros Valores'}
                   </h3>
                   <p className="text-sm font-medium text-stone-700 mb-5">
-                    {COMPANY_INFO.valuesText}
+                    {companyInfo.valuesText}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-stone-200/80">
-                    {COMPANY_INFO.valuesList.map((val, i) => (
+                    {companyInfo.valuesList.map((val, i) => (
                       <div key={val.name}>
                         <div className="text-xs font-mono tabular-nums text-stone-400 mb-0.5">
                           0{i + 1}
@@ -598,20 +708,26 @@ export default function RoatanAutenticaPortal() {
               <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-stone-200/80 min-h-[340px]">
                 <ResilientImage
                   src={ASSETS.garifunaHuts}
-                  alt="Champas tradicionales garífunas construidas con palma real y cocoteros en Roatán"
+                  alt="Champas tradicionales garífunas en Roatán"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8">
                   <div className="flex items-center gap-2 text-xs text-amber-300 font-medium mb-1">
-                    <span>Arquitectura y Raíces Isleñas</span>
+                    <span>
+                      {isEn
+                        ? 'Architecture & Island Roots'
+                        : 'Arquitectura y Raíces Isleñas'}
+                    </span>
                     <span aria-hidden="true">·</span>
-                    <span>Casa de la Cultura y Punta Gorda</span>
+                    <span>Casa de la Cultura & Punta Gorda</span>
                   </div>
                   <p
                     className="text-lg font-bold text-white leading-snug"
                     style={{fontFamily: 'var(--font-display), serif'}}
                   >
-                    Preservamos las costumbres, música y hospitalidad de nuestras comunidades.
+                    {isEn
+                      ? 'Preserving the customs, music, and warm hospitality of our island communities.'
+                      : 'Preservamos las costumbres, música y hospitalidad de nuestras comunidades.'}
                   </p>
                 </div>
               </div>
@@ -619,7 +735,7 @@ export default function RoatanAutenticaPortal() {
           </div>
         </section>
 
-        {/* SECTION 2: PAQUETES TURÍSTICOS DE ROATÁN AUTÉNTICA (CON CALCULADORA LOCAL -56%) */}
+        {/* SECTION 2: PAQUETES TURÍSTICOS DE ROATÁN AUTÉNTICA (CON CALCULADORA LOCAL -10%) */}
         <section
           id="paquetes"
           className="py-16 border-t border-stone-200/80 bg-[#FAF8F5]"
@@ -629,9 +745,17 @@ export default function RoatanAutenticaPortal() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
               <div className="max-w-2xl">
                 <div className="flex items-center gap-2 text-xs font-medium text-teal-800 mb-3">
-                  <span>02. Paquetes Turísticos Oficiales</span>
+                  <span>
+                    {isEn
+                      ? '02. Official Tour Packages'
+                      : '02. Paquetes Turísticos Oficiales'}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>Salidas 9:00 AM – 2:00 PM</span>
+                  <span>
+                    {isEn
+                      ? 'Departures 9:00 AM – 2:00 PM'
+                      : 'Salidas 9:00 AM – 2:00 PM'}
+                  </span>
                 </div>
                 <h2
                   className="text-3xl sm:text-4xl font-bold text-stone-950 tracking-tight mb-3"
@@ -640,14 +764,32 @@ export default function RoatanAutenticaPortal() {
                     textWrap: 'balance',
                   }}
                 >
-                  Paquetes turísticos de Roatán Auténtica
+                  {isEn
+                    ? 'Tour Packages by Roatán Auténtica'
+                    : 'Paquetes turísticos de Roatán Auténtica'}
                 </h2>
                 <p className="text-base text-stone-600 leading-relaxed">
-                  Elige entre nuestras 3 rutas diseñadas para descubrir playas vírgenes, historia garífuna, manglares y la mejor gastronomía local. Activa la tarifa local para aplicar automáticamente el{' '}
-                  <strong className="text-teal-800 font-semibold">
-                    {LOCAL_DISCOUNT_PERCENT}% de descuento para personas locales
-                  </strong>
-                  .
+                  {isEn ? (
+                    <>
+                      Choose from our 3 signature routes: <strong>Island Soul Escape ($65)</strong>,{' '}
+                      <strong>Roots & Reefs ($60)</strong>, and <strong>Into the Blue ($55)</strong>.
+                      Switch to the local rate to automatically apply the{' '}
+                      <strong className="text-teal-800 font-semibold">
+                        {LOCAL_DISCOUNT_PERCENT}% discount for local residents
+                      </strong>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Elige entre nuestras 3 rutas oficiales: <strong>Island Soul Escape ($65)</strong>,{' '}
+                      <strong>Roots & Reefs ($60)</strong> e <strong>Into the Blue ($55)</strong>.
+                      Activa la tarifa local para aplicar automáticamente el{' '}
+                      <strong className="text-teal-800 font-semibold">
+                        {LOCAL_DISCOUNT_PERCENT}% de descuento para personas locales
+                      </strong>
+                      .
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -668,7 +810,7 @@ export default function RoatanAutenticaPortal() {
                         : 'text-stone-600 hover:text-stone-950'
                     }`}
                   >
-                    Tarifa Visitante
+                    {isEn ? 'Visitor Rate' : 'Tarifa Visitante'}
                   </button>
                   <button
                     type="button"
@@ -679,7 +821,7 @@ export default function RoatanAutenticaPortal() {
                         : 'text-stone-700 hover:text-stone-950'
                     }`}
                   >
-                    Persona Local (-10%)
+                    {isEn ? 'Local Resident (-10%)' : 'Persona Local (-10%)'}
                   </button>
                 </div>
 
@@ -717,7 +859,7 @@ export default function RoatanAutenticaPortal() {
 
             {/* 3 Tour Package Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-14">
-              {TOUR_PACKAGES.map((pkg) => {
+              {tourPackages.map((pkg) => {
                 const priceInfo = calculatePrice(
                   pkg.priceUSD,
                   isLocalTariff,
@@ -757,14 +899,20 @@ export default function RoatanAutenticaPortal() {
                         {/* Clean Unboxed Metadata */}
                         <div className="flex flex-wrap items-center gap-1.5 text-xs text-stone-500 mb-2">
                           <span className="font-semibold text-teal-800">
-                            Incluye:
+                            {isEn ? 'Includes:' : 'Incluye:'}
                           </span>
                           <span>{pkg.includes}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 mb-4 font-mono tabular-nums">
-                          <span>Clientes diarios est.: {pkg.dailyCapacity}</span>
+                          <span>
+                            {isEn ? 'Est. daily guests:' : 'Clientes diarios est.:'}{' '}
+                            {pkg.dailyCapacity}
+                          </span>
                           <span aria-hidden="true">·</span>
-                          <span>Mensuales est.: {pkg.monthlyCapacity}</span>
+                          <span>
+                            {isEn ? 'Monthly est.:' : 'Mensuales est.:'}{' '}
+                            {pkg.monthlyCapacity}
+                          </span>
                         </div>
 
                         {/* Price Block with Tabular Numerals */}
@@ -772,7 +920,11 @@ export default function RoatanAutenticaPortal() {
                           <div>
                             <div className="text-xs text-stone-500">
                               {isLocalTariff
-                                ? 'Precio con 10% Descuento Local'
+                                ? isEn
+                                  ? 'Price with 10% Local Discount'
+                                  : 'Precio con 10% Descuento Local'
+                                : isEn
+                                ? 'Standard Price per Person'
                                 : 'Precio Estándar por Persona'}
                             </div>
                             <div className="flex items-baseline gap-2 mt-0.5">
@@ -789,7 +941,11 @@ export default function RoatanAutenticaPortal() {
                           <div className="text-right">
                             <span className="text-xs font-mono tabular-nums text-teal-800 font-semibold">
                               {isLocalTariff
-                                ? `Ahorras ${priceInfo.savingsAmount}`
+                                ? isEn
+                                  ? `Save ${priceInfo.savingsAmount}`
+                                  : `Ahorras ${priceInfo.savingsAmount}`
+                                : isEn
+                                ? '5 Hours'
                                 : '5 Horas'}
                             </span>
                           </div>
@@ -811,7 +967,7 @@ export default function RoatanAutenticaPortal() {
                                 : 'text-stone-600 hover:text-stone-900'
                             }`}
                           >
-                            Recorrido Paso a Paso
+                            {isEn ? 'Step-by-Step Route' : 'Recorrido Paso a Paso'}
                           </button>
                           <button
                             type="button"
@@ -827,7 +983,9 @@ export default function RoatanAutenticaPortal() {
                                 : 'text-stone-600 hover:text-stone-900'
                             }`}
                           >
-                            Qué Incluye ({pkg.includesList.length})
+                            {isEn
+                              ? `What's Included (${pkg.includesList.length})`
+                              : `Qué Incluye (${pkg.includesList.length})`}
                           </button>
                         </div>
 
@@ -870,7 +1028,9 @@ export default function RoatanAutenticaPortal() {
                             ))}
                             <div className="pt-3 mt-3 border-t border-stone-200/80 text-xs text-stone-600">
                               <span className="font-semibold text-stone-900">
-                                Experiencia Culinaria:{' '}
+                                {isEn
+                                  ? 'Culinary Experience: '
+                                  : 'Experiencia Culinaria: '}
                               </span>
                               {pkg.highlightFood}
                             </div>
@@ -887,7 +1047,8 @@ export default function RoatanAutenticaPortal() {
                         className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
                       >
                         <span>
-                          Reservar {pkg.name} ({priceInfo.finalAmount})
+                          {isEn ? 'Book' : 'Reservar'} {pkg.name} (
+                          {priceInfo.finalAmount})
                         </span>
                         <ArrowRight className="w-4 h-4" />
                       </button>
@@ -897,7 +1058,7 @@ export default function RoatanAutenticaPortal() {
               })}
             </div>
 
-            {/* OFFICIAL SUMMARY TABLE (Exact reproduction of the user's package table with interactive selection) */}
+            {/* OFFICIAL SUMMARY TABLE */}
             <div className="bg-white border border-stone-200/80 rounded-2xl overflow-hidden">
               <div className="p-6 sm:p-8 border-b border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -905,14 +1066,20 @@ export default function RoatanAutenticaPortal() {
                     className="text-xl font-bold text-stone-950"
                     style={{fontFamily: 'var(--font-display), serif'}}
                   >
-                    Cuadro Comparativo Oficial — Paquetes Turísticos de Roatán Auténtica
+                    {isEn
+                      ? 'Official Comparison Chart — Roatán Auténtica Tour Packages'
+                      : 'Cuadro Comparativo Oficial — Paquetes Turísticos de Roatán Auténtica'}
                   </h3>
                   <p className="text-xs text-stone-500 mt-1">
-                    Descuento oficial para personas locales: 10% sobre el precio de lista en todos nuestros recorridos.
+                    {isEn
+                      ? 'Official discount for local residents: 10% off list price across all our tours.'
+                      : 'Descuento oficial para personas locales: 10% sobre el precio de lista en todos nuestros recorridos.'}
                   </p>
                 </div>
                 <div className="text-xs font-mono tabular-nums text-teal-800 font-semibold">
-                  Horario Único: 9:00 AM - 2:00 PM
+                  {isEn
+                    ? 'Daily Schedule: 9:00 AM - 2:00 PM'
+                    : 'Horario Único: 9:00 AM - 2:00 PM'}
                 </div>
               </div>
 
@@ -920,21 +1087,31 @@ export default function RoatanAutenticaPortal() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-stone-200/80 bg-[#FAF8F5] text-xs font-semibold text-stone-600">
-                      <th className="py-3.5 px-6">Paquete</th>
-                      <th className="py-3.5 px-6">Incluye</th>
-                      <th className="py-3.5 px-6">Recorrido Oficial</th>
-                      <th className="py-3.5 px-6 whitespace-nowrap">Hora</th>
-                      <th className="py-3.5 px-6 whitespace-nowrap">
-                        Precio Visitante
+                      <th className="py-3.5 px-6">
+                        {isEn ? 'Package' : 'Paquete'}
+                      </th>
+                      <th className="py-3.5 px-6">
+                        {isEn ? 'Includes' : 'Incluye'}
+                      </th>
+                      <th className="py-3.5 px-6">
+                        {isEn ? 'Official Route' : 'Recorrido Oficial'}
                       </th>
                       <th className="py-3.5 px-6 whitespace-nowrap">
-                        Precio Local (-10%)
+                        {isEn ? 'Time' : 'Hora'}
                       </th>
-                      <th className="py-3.5 px-6 text-right">Acción</th>
+                      <th className="py-3.5 px-6 whitespace-nowrap">
+                        {isEn ? 'Visitor Price' : 'Precio Visitante'}
+                      </th>
+                      <th className="py-3.5 px-6 whitespace-nowrap">
+                        {isEn ? 'Local Price (-10%)' : 'Precio Local (-10%)'}
+                      </th>
+                      <th className="py-3.5 px-6 text-right">
+                        {isEn ? 'Action' : 'Acción'}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-200/80 text-sm">
-                    {TOUR_PACKAGES.map((pkg) => {
+                    {tourPackages.map((pkg) => {
                       const stdPrice = calculatePrice(
                         pkg.priceUSD,
                         false,
@@ -958,7 +1135,10 @@ export default function RoatanAutenticaPortal() {
                               {pkg.name}
                             </div>
                             <div className="text-xs text-stone-500 font-mono tabular-nums mt-0.5">
-                              {pkg.dailyCapacity} diarios · {pkg.monthlyCapacity} mensuales
+                              {pkg.dailyCapacity}{' '}
+                              {isEn ? 'daily' : 'diarios'} ·{' '}
+                              {pkg.monthlyCapacity}{' '}
+                              {isEn ? 'monthly' : 'mensuales'}
                             </div>
                           </td>
                           <td className="py-4 px-6 text-stone-700 min-w-[180px]">
@@ -984,7 +1164,7 @@ export default function RoatanAutenticaPortal() {
                               }
                               className="px-3.5 py-1.5 text-xs font-semibold text-teal-800 hover:text-white border border-teal-800 hover:bg-teal-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
                             >
-                              Reservar
+                              {isEn ? 'Book' : 'Reservar'}
                             </button>
                           </td>
                         </tr>
@@ -1007,9 +1187,15 @@ export default function RoatanAutenticaPortal() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-14">
               <div className="lg:col-span-6">
                 <div className="flex items-center gap-2 text-xs font-medium text-teal-800 mb-3">
-                  <span>03. Cultura, Comunidades y Sabores</span>
+                  <span>
+                    {isEn
+                      ? '03. Culture, Communities & Flavors'
+                      : '03. Cultura, Comunidades y Sabores'}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>Identidad de Roatán</span>
+                  <span>
+                    {isEn ? 'Identity of Roatán' : 'Identidad de Roatán'}
+                  </span>
                 </div>
                 <h2
                   className="text-3xl sm:text-4xl font-bold text-stone-950 tracking-tight mb-4"
@@ -1018,19 +1204,21 @@ export default function RoatanAutenticaPortal() {
                     textWrap: 'balance',
                   }}
                 >
-                  ¿Qué puedes encontrar con nosotros?
+                  {isEn
+                    ? 'What can you discover with us?'
+                    : '¿Qué puedes encontrar con nosotros?'}
                 </h2>
                 <p className="text-base text-stone-700 font-medium leading-relaxed mb-4">
-                  {COMPANY_INFO.whatYouCanFindIntro}
+                  {companyInfo.whatYouCanFindIntro}
                 </p>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  {COMPANY_INFO.whatYouCanFindDetail}
+                  {companyInfo.whatYouCanFindDetail}
                 </p>
               </div>
 
               {/* 3 Cultural Communities List */}
               <div className="lg:col-span-6 grid grid-cols-1 gap-4">
-                {CULTURAL_COMMUNITIES.map((comm) => (
+                {culturalCommunities.map((comm) => (
                   <div
                     key={comm.name}
                     className="bg-[#FAF8F5] border border-stone-200/80 rounded-xl p-5 flex items-start gap-4"
@@ -1046,7 +1234,10 @@ export default function RoatanAutenticaPortal() {
                         >
                           {comm.name}
                         </h3>
-                        <span className="text-xs text-stone-400" aria-hidden="true">
+                        <span
+                          className="text-xs text-stone-400"
+                          aria-hidden="true"
+                        >
                           ·
                         </span>
                         <span className="text-xs text-stone-500">
@@ -1067,22 +1258,28 @@ export default function RoatanAutenticaPortal() {
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
                 <div>
                   <div className="text-xs font-medium text-teal-800 mb-1">
-                    Gastronomía Tradicional en Nuestros Recorridos
+                    {isEn
+                      ? 'Traditional Gastronomy on Our Tours'
+                      : 'Gastronomía Tradicional en Nuestros Recorridos'}
                   </div>
                   <h3
                     className="text-2xl font-bold text-stone-950"
                     style={{fontFamily: 'var(--font-display), serif'}}
                   >
-                    Sabores auténticos de Punta Gorda, La Cocina de Don Jorge y View Bay
+                    {isEn
+                      ? 'Authentic flavors from Punta Gorda, Don Jorge’s Kitchen & View Bay'
+                      : 'Sabores auténticos de Punta Gorda, La Cocina de Don Jorge y View Bay'}
                   </h3>
                 </div>
                 <p className="text-xs text-stone-500 max-w-md">
-                  Fotografías reales de los platillos tradicionales que degustarás durante nuestras paradas gastronómicas.
+                  {isEn
+                    ? 'Real photographs of the traditional dishes you will savor during our culinary stops.'
+                    : 'Fotografías reales de los platillos tradicionales que degustarás durante nuestras paradas gastronómicas.'}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {GASTRONOMY_ITEMS.map((dish) => (
+                {gastronomyItems.map((dish) => (
                   <div
                     key={dish.id}
                     className="bg-[#FAF8F5] border border-stone-200/80 rounded-2xl overflow-hidden flex flex-col justify-between"
@@ -1129,9 +1326,17 @@ export default function RoatanAutenticaPortal() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
               <div>
                 <div className="flex items-center gap-2 text-xs font-medium text-teal-800 mb-3">
-                  <span>04. Galería Real de Roatán</span>
+                  <span>
+                    {isEn
+                      ? '04. Real Photo Gallery of Roatán'
+                      : '04. Galería Real de Roatán'}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>Paisajes, Cultura y Sazón</span>
+                  <span>
+                    {isEn
+                      ? 'Landscapes, Culture & Cuisine'
+                      : 'Paisajes, Cultura y Sazón'}
+                  </span>
                 </div>
                 <h2
                   className="text-3xl sm:text-4xl font-bold text-stone-950 tracking-tight"
@@ -1140,7 +1345,9 @@ export default function RoatanAutenticaPortal() {
                     textWrap: 'balance',
                   }}
                 >
-                  Postales reales de nuestros recorridos
+                  {isEn
+                    ? 'Authentic postcards from our tours'
+                    : 'Postales reales de nuestros recorridos'}
                 </h2>
               </div>
 
@@ -1159,7 +1366,9 @@ export default function RoatanAutenticaPortal() {
                       : 'text-stone-600 hover:text-stone-950'
                   }`}
                 >
-                  Todos ({GALLERY_PHOTOS.length})
+                  {isEn
+                    ? `All (${galleryPhotos.length})`
+                    : `Todos (${galleryPhotos.length})`}
                 </button>
                 <button
                   type="button"
@@ -1170,7 +1379,7 @@ export default function RoatanAutenticaPortal() {
                       : 'text-stone-600 hover:text-stone-950'
                   }`}
                 >
-                  Playas y Manglares
+                  {isEn ? 'Beaches & Mangroves' : 'Playas y Manglares'}
                 </button>
                 <button
                   type="button"
@@ -1181,7 +1390,7 @@ export default function RoatanAutenticaPortal() {
                       : 'text-stone-600 hover:text-stone-950'
                   }`}
                 >
-                  Cultura y Comunidades
+                  {isEn ? 'Culture & Communities' : 'Cultura y Comunidades'}
                 </button>
                 <button
                   type="button"
@@ -1192,7 +1401,7 @@ export default function RoatanAutenticaPortal() {
                       : 'text-stone-600 hover:text-stone-950'
                   }`}
                 >
-                  Gastronomía Isleña
+                  {isEn ? 'Island Gastronomy' : 'Gastronomía Isleña'}
                 </button>
               </div>
             </div>
@@ -1200,7 +1409,6 @@ export default function RoatanAutenticaPortal() {
             {/* Asymmetric Bento Photo Grid */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {filteredGallery.map((photo, index) => {
-                // Dynamic span for visual rhythm
                 const spanClass =
                   index === 0
                     ? 'md:col-span-7'
@@ -1253,7 +1461,10 @@ export default function RoatanAutenticaPortal() {
           </div>
         </section>
 
-        {/* SECTION 5: COTIZADOR INTERACTIVO Y RESERVA DIRECTA */}
+        {/* SECTION 5: BOOKING.COM-STYLE GUEST REVIEWS & COMMENTS (CACHED IN BROWSER LOCALSTORAGE) */}
+        <BookingStyleReviews lang={lang} />
+
+        {/* SECTION 6: COTIZADOR INTERACTIVO Y RESERVA DIRECTA CON GENERACIÓN DE PDF */}
         <section
           id="reservar"
           className="py-16 border-t border-stone-200/80 bg-white"
@@ -1263,9 +1474,17 @@ export default function RoatanAutenticaPortal() {
               {/* Left Column: Booking Instructions & Direct Benefits */}
               <div className="lg:col-span-5">
                 <div className="flex items-center gap-2 text-xs font-medium text-teal-800 mb-3">
-                  <span>05. Reservación y Cotizador</span>
+                  <span>
+                    {isEn
+                      ? '06. Booking & Quote Calculator'
+                      : '06. Reservación y Cotizador'}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>Confirmación Inmediata</span>
+                  <span>
+                    {isEn
+                      ? 'Instant PDF Voucher'
+                      : 'Comprobante PDF Inmediato'}
+                  </span>
                 </div>
                 <h2
                   className="text-3xl sm:text-4xl font-bold text-stone-950 tracking-tight mb-4"
@@ -1274,14 +1493,30 @@ export default function RoatanAutenticaPortal() {
                     textWrap: 'balance',
                   }}
                 >
-                  Reserva tu experiencia con Roatán Auténtica
+                  {isEn
+                    ? 'Book your experience with Roatán Auténtica'
+                    : 'Reserva tu experiencia con Roatán Auténtica'}
                 </h2>
                 <p className="text-sm text-stone-600 leading-relaxed mb-6">
-                  Calcula tu tarifa exacta en dólares o lempiras, aplica el{' '}
-                  <strong className="text-stone-900">
-                    descuento del 10% para personas locales
-                  </strong>{' '}
-                  y genera tu código de reserva para salir desde el muelle de cruceros o punto de encuentro en la isla.
+                  {isEn ? (
+                    <>
+                      Calculate your exact fare in USD or Lempiras, apply the{' '}
+                      <strong className="text-stone-900">
+                        10% discount for local residents
+                      </strong>
+                      , and automatically download your official PDF reservation
+                      voucher.
+                    </>
+                  ) : (
+                    <>
+                      Calcula tu tarifa exacta en dólares o lempiras, aplica el{' '}
+                      <strong className="text-stone-900">
+                        descuento del 10% para personas locales
+                      </strong>{' '}
+                      y descarga automáticamente tu comprobante oficial de
+                      reserva en PDF.
+                    </>
+                  )}
                 </p>
 
                 {/* Summary Box of Selected Package */}
@@ -1314,14 +1549,24 @@ export default function RoatanAutenticaPortal() {
 
                   <div className="pt-4 border-t border-stone-200/80 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-stone-500">Incluye:</span>
+                      <span className="text-stone-500">
+                        {isEn ? 'Includes:' : 'Incluye:'}
+                      </span>
                       <span className="font-medium text-stone-900">
                         {currentBookingPackage.includes}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-stone-500">
-                        Tarifa por persona ({isLocalTariff ? 'Local -10%' : 'Estándar'}):
+                        {isEn ? 'Rate per person' : 'Tarifa por persona'} (
+                        {isLocalTariff
+                          ? isEn
+                            ? 'Local -10%'
+                            : 'Local -10%'
+                          : isEn
+                          ? 'Standard'
+                          : 'Estándar'}
+                        ):
                       </span>
                       <span className="font-mono tabular-nums font-bold text-stone-950">
                         {unitPricing.finalAmount}
@@ -1329,8 +1574,15 @@ export default function RoatanAutenticaPortal() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-stone-500">
-                        Total por {guestsCount}{' '}
-                        {guestsCount === 1 ? 'persona' : 'personas'}:
+                        {isEn ? 'Total for' : 'Total por'} {guestsCount}{' '}
+                        {guestsCount === 1
+                          ? isEn
+                            ? 'person'
+                            : 'persona'
+                          : isEn
+                          ? 'guests'
+                          : 'personas'}
+                        :
                       </span>
                       <span className="font-mono tabular-nums text-base font-bold text-teal-800">
                         {totalPricing.finalAmount}
@@ -1338,7 +1590,11 @@ export default function RoatanAutenticaPortal() {
                     </div>
                     {isLocalTariff && (
                       <div className="flex items-center justify-between text-teal-800 pt-1">
-                        <span>Ahorro total aplicado (10%):</span>
+                        <span>
+                          {isEn
+                            ? 'Total local savings (10%):'
+                            : 'Ahorro total aplicado (10%):'}
+                        </span>
                         <span className="font-mono tabular-nums font-semibold">
                           -{totalPricing.savingsAmount}
                         </span>
@@ -1358,10 +1614,14 @@ export default function RoatanAutenticaPortal() {
                   </div>
                   <div className="text-xs text-stone-600">
                     <div className="font-semibold text-stone-900">
-                      Garantía de Puntualidad Roatán Auténtica
+                      {isEn
+                        ? 'Roatán Auténtica Punctuality Guarantee'
+                        : 'Garantía de Puntualidad Roatán Auténtica'}
                     </div>
                     <div>
-                      Todos los paquetes operan de 9:00 AM a 2:00 PM con retorno seguro al muelle de cruceros.
+                      {isEn
+                        ? 'All packages run from 9:00 AM to 2:00 PM with guaranteed safe return to the cruise port.'
+                        : 'Todos los paquetes operan de 9:00 AM a 2:00 PM con retorno seguro al muelle de cruceros.'}
                     </div>
                   </div>
                 </div>
@@ -1374,18 +1634,23 @@ export default function RoatanAutenticaPortal() {
                     <div className="flex items-center justify-between gap-4 pb-6 border-b border-stone-200/80">
                       <div>
                         <div className="text-xs font-semibold text-teal-800 mb-1">
-                          Solicitud de Reserva Registrada
+                          {isEn
+                            ? 'Reservation Confirmed & PDF Generated'
+                            : 'Solicitud de Reserva Registrada y PDF Generado'}
                         </div>
                         <h3
                           className="text-2xl font-bold text-stone-950"
                           style={{fontFamily: 'var(--font-display), serif'}}
                         >
-                          ¡Gracias por elegir Roatán Auténtica,{' '}
-                          {bookingConfirmed.name}!
+                          {isEn
+                            ? `Thank you for choosing Roatán Auténtica, ${bookingConfirmed.name}!`
+                            : `¡Gracias por elegir Roatán Auténtica, ${bookingConfirmed.name}!`}
                         </h3>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-stone-500">Código</div>
+                        <div className="text-xs text-stone-500">
+                          {isEn ? 'Code' : 'Código'}
+                        </div>
                         <div className="font-mono tabular-nums text-sm font-bold text-teal-800">
                           {bookingConfirmed.code}
                         </div>
@@ -1394,34 +1659,58 @@ export default function RoatanAutenticaPortal() {
 
                     <div className="py-6 space-y-3 text-sm">
                       <div className="flex justify-between gap-4">
-                        <span className="text-stone-500">Paquete Seleccionado:</span>
+                        <span className="text-stone-500">
+                          {isEn ? 'Selected Package:' : 'Paquete Seleccionado:'}
+                        </span>
                         <span className="font-semibold text-stone-900 text-right">
                           {bookingConfirmed.packageData.title}
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span className="text-stone-500">Fecha y Horario:</span>
+                        <span className="text-stone-500">
+                          {isEn ? 'Date & Time:' : 'Fecha y Horario:'}
+                        </span>
                         <span className="font-mono tabular-nums font-medium text-stone-900">
                           {bookingConfirmed.date} · {bookingConfirmed.schedule}
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span className="text-stone-500">Punto de Salida:</span>
+                        <span className="text-stone-500">
+                          {isEn ? 'Departure Point:' : 'Punto de Salida:'}
+                        </span>
                         <span className="text-stone-900 text-right">
                           {bookingConfirmed.pickup}
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span className="text-stone-500">Cantidad de Pasajeros:</span>
+                        <span className="text-stone-500">
+                          {isEn
+                            ? 'Number of Guests:'
+                            : 'Cantidad de Pasajeros:'}
+                        </span>
                         <span className="font-mono tabular-nums text-stone-900">
                           {bookingConfirmed.guests}{' '}
-                          {bookingConfirmed.guests === 1 ? 'persona' : 'personas'}{' '}
-                          ({bookingConfirmed.isLocal ? 'Tarifa Local -10%' : 'Tarifa Estándar'})
+                          {bookingConfirmed.guests === 1
+                            ? isEn
+                              ? 'guest'
+                              : 'persona'
+                            : isEn
+                            ? 'guests'
+                            : 'personas'}{' '}
+                          (
+                          {bookingConfirmed.isLocal
+                            ? isEn
+                              ? 'Local Rate -10%'
+                              : 'Tarifa Local -10%'
+                            : isEn
+                            ? 'Standard Rate'
+                            : 'Tarifa Estándar'}
+                          )
                         </span>
                       </div>
                       <div className="flex justify-between gap-4 pt-3 border-t border-stone-200/80">
                         <span className="font-semibold text-stone-900">
-                          Total Estimado a Pagar:
+                          {isEn ? 'Estimated Total Due:' : 'Total Estimado a Pagar:'}
                         </span>
                         <span className="font-mono tabular-nums text-xl font-bold text-teal-800">
                           {bookingConfirmed.totalFormatted}
@@ -1439,7 +1728,11 @@ export default function RoatanAutenticaPortal() {
                         <FileDown className="w-4 h-4" />
                         <span>
                           {isGeneratingPdf
-                            ? 'Generando PDF...'
+                            ? isEn
+                              ? 'Generating PDF...'
+                              : 'Generando PDF...'
+                            : isEn
+                            ? 'Download PDF Voucher'
                             : 'Descargar Comprobante PDF'}
                         </span>
                       </button>
@@ -1451,7 +1744,11 @@ export default function RoatanAutenticaPortal() {
                         <Copy className="w-4 h-4" />
                         <span>
                           {copiedCode
-                            ? 'Comprobante Copiado'
+                            ? isEn
+                              ? 'Summary Copied'
+                              : 'Comprobante Copiado'
+                            : isEn
+                            ? 'Copy Summary'
                             : 'Copiar Resumen'}
                         </span>
                       </button>
@@ -1460,7 +1757,9 @@ export default function RoatanAutenticaPortal() {
                         onClick={() => setBookingConfirmed(null)}
                         className="px-4 py-2.5 border border-stone-300 hover:border-stone-400 text-stone-700 text-xs font-semibold rounded-xl transition-colors whitespace-nowrap shrink-0"
                       >
-                        Modificar o Hacer Otra Reserva
+                        {isEn
+                          ? 'Modify or Book Another Tour'
+                          : 'Modificar o Hacer Otra Reserva'}
                       </button>
                     </div>
                   </div>
@@ -1472,10 +1771,12 @@ export default function RoatanAutenticaPortal() {
                     {/* Step 1: Select Package */}
                     <div>
                       <label className="block text-xs font-semibold text-stone-800 mb-2">
-                        1. Selecciona tu Paquete Turístico (9:00 AM - 2:00 PM)
+                        {isEn
+                          ? '1. Select Your Tour Package (9:00 AM - 2:00 PM)'
+                          : '1. Selecciona tu Paquete Turístico (9:00 AM - 2:00 PM)'}
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {TOUR_PACKAGES.map((pkg) => {
+                        {tourPackages.map((pkg) => {
                           const pInfo = calculatePrice(
                             pkg.priceUSD,
                             isLocalTariff,
@@ -1495,11 +1796,13 @@ export default function RoatanAutenticaPortal() {
                             >
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <span className="font-mono tabular-nums text-xs font-bold">
-                                  Paquete {pkg.id}
+                                  {isEn ? `Package ${pkg.id}` : `Paquete ${pkg.id}`}
                                 </span>
                                 <span
                                   className={`font-mono tabular-nums text-xs font-bold ${
-                                    isSelected ? 'text-amber-300' : 'text-teal-800'
+                                    isSelected
+                                      ? 'text-amber-300'
+                                      : 'text-teal-800'
                                   }`}
                                 >
                                   {pInfo.finalAmount}
@@ -1510,7 +1813,9 @@ export default function RoatanAutenticaPortal() {
                               </div>
                               <div
                                 className={`text-xs line-clamp-1 ${
-                                  isSelected ? 'text-stone-200' : 'text-stone-500'
+                                  isSelected
+                                    ? 'text-stone-200'
+                                    : 'text-stone-500'
                                 }`}
                               >
                                 {pkg.includes}
@@ -1525,7 +1830,7 @@ export default function RoatanAutenticaPortal() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-stone-800 mb-2">
-                          2. Tipo de Tarifa
+                          {isEn ? '2. Rate Type' : '2. Tipo de Tarifa'}
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                           <button
@@ -1537,7 +1842,7 @@ export default function RoatanAutenticaPortal() {
                                 : 'bg-white text-stone-700 border-stone-200'
                             }`}
                           >
-                            Visitante
+                            {isEn ? 'Visitor' : 'Visitante'}
                           </button>
                           <button
                             type="button"
@@ -1548,7 +1853,7 @@ export default function RoatanAutenticaPortal() {
                                 : 'bg-white text-stone-700 border-stone-200'
                             }`}
                           >
-                            Local (-10%)
+                            {isEn ? 'Local (-10%)' : 'Local (-10%)'}
                           </button>
                         </div>
                       </div>
@@ -1558,7 +1863,9 @@ export default function RoatanAutenticaPortal() {
                           htmlFor="guests-input"
                           className="block text-xs font-semibold text-stone-800 mb-2"
                         >
-                          3. Número de Personas
+                          {isEn
+                            ? '3. Number of Guests'
+                            : '3. Número de Personas'}
                         </label>
                         <div className="flex items-center gap-2">
                           <button
@@ -1567,7 +1874,7 @@ export default function RoatanAutenticaPortal() {
                               setGuestsCount((c) => Math.max(1, c - 1))
                             }
                             className="w-10 h-10 rounded-xl bg-white border border-stone-200 text-stone-800 font-bold hover:bg-stone-100 transition-colors"
-                            aria-label="Disminuir pasajeros"
+                            aria-label="Decrease guests"
                           >
                             -
                           </button>
@@ -1590,7 +1897,7 @@ export default function RoatanAutenticaPortal() {
                               setGuestsCount((c) => Math.min(30, c + 1))
                             }
                             className="w-10 h-10 rounded-xl bg-white border border-stone-200 text-stone-800 font-bold hover:bg-stone-100 transition-colors"
-                            aria-label="Aumentar pasajeros"
+                            aria-label="Increase guests"
                           >
                             +
                           </button>
@@ -1605,7 +1912,7 @@ export default function RoatanAutenticaPortal() {
                           htmlFor="tour-date"
                           className="block text-xs font-semibold text-stone-800 mb-2"
                         >
-                          4. Fecha del Recorrido
+                          {isEn ? '4. Tour Date' : '4. Fecha del Recorrido'}
                         </label>
                         <input
                           id="tour-date"
@@ -1622,7 +1929,9 @@ export default function RoatanAutenticaPortal() {
                           htmlFor="pickup-point"
                           className="block text-xs font-semibold text-stone-800 mb-2"
                         >
-                          5. Punto de Salida (9:00 AM)
+                          {isEn
+                            ? '5. Departure Point (9:00 AM)'
+                            : '5. Punto de Salida (9:00 AM)'}
                         </label>
                         <select
                           id="pickup-point"
@@ -1631,13 +1940,19 @@ export default function RoatanAutenticaPortal() {
                           className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-teal-800"
                         >
                           <option value="Muelle de Cruceros (Port of Roatán / Coxen Hole)">
-                            Muelle de Cruceros (Port of Roatán / Coxen Hole)
+                            {isEn
+                              ? 'Cruise Ship Terminal (Port of Roatán / Coxen Hole)'
+                              : 'Muelle de Cruceros (Port of Roatán / Coxen Hole)'}
                           </option>
                           <option value="Muelle de Cruceros Mahogany Bay">
-                            Muelle de Cruceros Mahogany Bay
+                            {isEn
+                              ? 'Mahogany Bay Cruise Terminal'
+                              : 'Muelle de Cruceros Mahogany Bay'}
                           </option>
                           <option value="Punto de Encuentro Local / Hotel en Roatán">
-                            Punto de Encuentro Local / Hotel en Roatán
+                            {isEn
+                              ? 'Local Meeting Point / Hotel in Roatán'
+                              : 'Punto de Encuentro Local / Hotel en Roatán'}
                           </option>
                         </select>
                       </div>
@@ -1650,12 +1965,16 @@ export default function RoatanAutenticaPortal() {
                           htmlFor="customer-name"
                           className="block text-xs font-semibold text-stone-800 mb-2"
                         >
-                          Nombre Completo
+                          {isEn ? 'Full Name' : 'Nombre Completo'}
                         </label>
                         <input
                           id="customer-name"
                           type="text"
-                          placeholder="Ej. María Fernanda López"
+                          placeholder={
+                            isEn
+                              ? 'e.g. Maria Fernanda Lopez'
+                              : 'Ej. María Fernanda López'
+                          }
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                           className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-teal-800"
@@ -1668,12 +1987,18 @@ export default function RoatanAutenticaPortal() {
                           htmlFor="customer-contact"
                           className="block text-xs font-semibold text-stone-800 mb-2"
                         >
-                          Teléfono (WhatsApp) o Correo
+                          {isEn
+                            ? 'Phone (WhatsApp) or Email'
+                            : 'Teléfono (WhatsApp) o Correo'}
                         </label>
                         <input
                           id="customer-contact"
                           type="text"
-                          placeholder="Ej. +504 9900-0000 o correo@ejemplo.com"
+                          placeholder={
+                            isEn
+                              ? 'e.g. +504 9900-0000 or email@example.com'
+                              : 'Ej. +504 9900-0000 o correo@ejemplo.com'
+                          }
                           value={customerContact}
                           onChange={(e) => setCustomerContact(e.target.value)}
                           className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-teal-800"
@@ -1687,12 +2012,18 @@ export default function RoatanAutenticaPortal() {
                         htmlFor="customer-notes"
                         className="block text-xs font-semibold text-stone-800 mb-2"
                       >
-                        Comentarios o Preferencias Alimenticias (Opcional)
+                        {isEn
+                          ? 'Comments or Dietary Preferences (Optional)'
+                          : 'Comentarios o Preferencias Alimenticias (Opcional)'}
                       </label>
                       <input
                         id="customer-notes"
                         type="text"
-                        placeholder="Ej. Nombre del crucero, preferencia entre pescado frito o sopa marinera..."
+                        placeholder={
+                          isEn
+                            ? 'e.g. Cruise ship name, preference between fried fish or seafood soup...'
+                            : 'Ej. Nombre del crucero, preferencia entre pescado frito o sopa marinera...'
+                        }
                         value={customerNotes}
                         onChange={(e) => setCustomerNotes(e.target.value)}
                         className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-teal-800"
@@ -1708,8 +2039,15 @@ export default function RoatanAutenticaPortal() {
                     <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <div className="text-xs text-stone-500">
-                          Total a Pagar ({guestsCount}{' '}
-                          {guestsCount === 1 ? 'pasajero' : 'pasajeros'}):
+                          {isEn ? 'Total Due' : 'Total a Pagar'} ({guestsCount}{' '}
+                          {guestsCount === 1
+                            ? isEn
+                              ? 'guest'
+                              : 'pasajero'
+                            : isEn
+                            ? 'guests'
+                            : 'pasajeros'}
+                          ):
                         </div>
                         <div className="text-2xl font-bold text-teal-800 font-mono tabular-nums">
                           {totalPricing.finalAmount}
@@ -1724,8 +2062,12 @@ export default function RoatanAutenticaPortal() {
                         <FileDown className="w-4 h-4" />
                         <span>
                           {isGeneratingPdf
-                            ? 'Generando Reserva en PDF...'
-                            : `Confirmar Reserva y Generar PDF (Paquete ${selectedPackageId})`}
+                            ? isEn
+                              ? 'Generating PDF Reservation...'
+                              : 'Generando Reserva en PDF...'
+                            : isEn
+                            ? `Confirm & Generate PDF (${currentBookingPackage.name})`
+                            : `Confirmar Reserva y Generar PDF (${currentBookingPackage.name})`}
                         </span>
                       </button>
                     </div>
@@ -1757,49 +2099,72 @@ export default function RoatanAutenticaPortal() {
                   Roatán Auténtica
                 </div>
                 <p className="text-xs text-amber-300/90 mt-0.5 mb-2">
-                  {COMPANY_INFO.slogan}
+                  {companyInfo.slogan}
                 </p>
                 <p className="text-xs text-stone-400 leading-relaxed max-w-sm">
-                  Experiencias turísticas accesibles y de calidad promoviendo la cultura garífuna, misquita e isleña de Roatán, Islas de la Bahía.
+                  {isEn
+                    ? 'Accessible, high-quality tourism experiences promoting Garífuna, Miskito, and Islander heritage in Roatán, Bay Islands.'
+                    : 'Experiencias turísticas accesibles y de calidad promoviendo la cultura garífuna, misquita e isleña de Roatán, Islas de la Bahía.'}
                 </p>
               </div>
             </div>
 
             <div className="md:col-span-4 space-y-2 text-xs">
               <div className="font-semibold text-white mb-2">
-                Nuestros Paquetes (9:00 AM – 2:00 PM)
+                {isEn
+                  ? 'Our Tour Packages (9:00 AM – 2:00 PM)'
+                  : 'Nuestros Paquetes (9:00 AM – 2:00 PM)'}
               </div>
               <div>
-                3.1. Paquete 1: Island Soul Escape ($65.00 · Local $58.50)
+                3.1. {isEn ? 'Package 1' : 'Paquete 1'}: Island Soul Escape ($65.00 · Local $58.50)
               </div>
               <div>
-                3.2. Paquete 2: Roots & Reefs ($60.00 · Local $54.00)
+                3.2. {isEn ? 'Package 2' : 'Paquete 2'}: Roots & Reefs ($60.00 · Local $54.00)
               </div>
               <div>
-                3.3. Paquete 3: Into the Blue ($55.00 · Local $49.50)
+                3.3. {isEn ? 'Package 3' : 'Paquete 3'}: Into the Blue ($55.00 · Local $49.50)
               </div>
               <div className="text-teal-400 font-medium pt-1">
-                Descuento para personas locales: 10% en todos los paquetes.
+                {isEn
+                  ? 'Local resident discount: 10% across all packages.'
+                  : 'Descuento para personas locales: 10% en todos los paquetes.'}
               </div>
             </div>
 
             <div className="md:col-span-3 space-y-2 text-xs">
-              <div className="font-semibold text-white mb-2">Navegación</div>
+              <div className="font-semibold text-white mb-2">
+                {isEn ? 'Navigation' : 'Navegación'}
+              </div>
               <div className="flex flex-col space-y-1.5">
-                <a href="#nosotros" className="hover:text-white transition-colors">
-                  ¿Quiénes Somos? & Misión
+                <a
+                  href="#nosotros"
+                  className="hover:text-white transition-colors"
+                >
+                  {isEn ? 'About Us & Mission' : '¿Quiénes Somos? & Misión'}
                 </a>
-                <a href="#paquetes" className="hover:text-white transition-colors">
-                  Paquetes y Tarifas
+                <a
+                  href="#paquetes"
+                  className="hover:text-white transition-colors"
+                >
+                  {isEn ? 'Packages & Rates' : 'Paquetes y Tarifas'}
                 </a>
-                <a href="#cultura" className="hover:text-white transition-colors">
-                  Cultura y Gastronomía
+                <a
+                  href="#cultura"
+                  className="hover:text-white transition-colors"
+                >
+                  {isEn ? 'Culture & Gastronomy' : 'Cultura y Gastronomía'}
                 </a>
-                <a href="#galeria" className="hover:text-white transition-colors">
-                  Galería Fotográfica
+                <a
+                  href="#comentarios"
+                  className="hover:text-white transition-colors"
+                >
+                  {isEn ? 'Guest Reviews' : 'Comentarios de Viajeros'}
                 </a>
-                <a href="#reservar" className="hover:text-white transition-colors">
-                  Reservar Recorrido
+                <a
+                  href="#reservar"
+                  className="hover:text-white transition-colors"
+                >
+                  {isEn ? 'Book Tour & PDF' : 'Reservar Recorrido'}
                 </a>
               </div>
             </div>
@@ -1807,10 +2172,13 @@ export default function RoatanAutenticaPortal() {
 
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
             <div>
-              © {new Date().getFullYear()} Roatán Auténtica. Todos los derechos reservados.
+              © {new Date().getFullYear()} Roatán Auténtica.{' '}
+              {isEn
+                ? 'All rights reserved.'
+                : 'Todos los derechos reservados.'}
             </div>
             <div>
-              Roatán, Islas de la Bahía, Honduras · Compromiso, responsabilidad, honestidad, amabilidad y pasión por el turismo.
+              Roatán, Honduras · {companyInfo.valuesText}
             </div>
           </div>
         </div>
@@ -1835,7 +2203,7 @@ export default function RoatanAutenticaPortal() {
                 type="button"
                 onClick={() => setSelectedPhoto(null)}
                 className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black transition-colors"
-                aria-label="Cerrar vista ampliada"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1864,7 +2232,9 @@ export default function RoatanAutenticaPortal() {
                 }}
                 className="px-4 py-2.5 bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold rounded-xl transition-colors whitespace-nowrap shrink-0"
               >
-                Reservar Paquete {selectedPhoto.relatedPackageId}
+                {isEn
+                  ? `Book Package ${selectedPhoto.relatedPackageId}`
+                  : `Reservar Paquete ${selectedPhoto.relatedPackageId}`}
               </button>
             </div>
           </div>

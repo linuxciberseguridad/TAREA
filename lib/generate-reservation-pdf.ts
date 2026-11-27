@@ -1,5 +1,10 @@
 import {jsPDF} from 'jspdf';
-import {ASSETS, COMPANY_INFO, TourPackage} from './roatan-data';
+import {
+  ASSETS,
+  BILINGUAL_CONTENT,
+  Language,
+  TourPackage,
+} from './roatan-data';
 
 export interface ReservationPdfData {
   code: string;
@@ -16,6 +21,7 @@ export interface ReservationPdfData {
   name: string;
   contact: string;
   notes?: string;
+  lang?: Language;
 }
 
 async function loadImageAsDataUrl(src: string): Promise<string | null> {
@@ -50,6 +56,10 @@ async function loadImageAsDataUrl(src: string): Promise<string | null> {
 export async function generateReservationPdf(
   data: ReservationPdfData
 ): Promise<void> {
+  const lang: Language = data.lang || 'es';
+  const isEn = lang === 'en';
+  const companyInfo = BILINGUAL_CONTENT[lang].companyInfo;
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -80,12 +90,14 @@ export async function generateReservationPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9.5);
   doc.setTextColor(253, 230, 138);
-  doc.text(COMPANY_INFO.slogan, headerTextX, 24.5);
+  doc.text(companyInfo.slogan, headerTextX, 24.5);
 
   doc.setTextColor(229, 231, 235);
   doc.setFontSize(8.5);
   doc.text(
-    'Turismo Cultural, Ecologico y Gastronomico | Roatan, Islas de la Bahia',
+    isEn
+      ? 'Cultural, Ecological & Culinary Tourism | Roatan, Bay Islands'
+      : 'Turismo Cultural, Ecologico y Gastronomico | Roatan, Islas de la Bahia',
     headerTextX,
     31
   );
@@ -96,7 +108,12 @@ export async function generateReservationPdf(
   doc.setTextColor(87, 83, 78);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('CODIGO DE RESERVA', pageWidth - 38, 17, {align: 'center'});
+  doc.text(
+    isEn ? 'BOOKING CODE' : 'CODIGO DE RESERVA',
+    pageWidth - 38,
+    17,
+    {align: 'center'}
+  );
 
   doc.setTextColor(17, 94, 89);
   doc.setFont('helvetica', 'bold');
@@ -109,7 +126,13 @@ export async function generateReservationPdf(
   doc.setTextColor(28, 25, 23);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('COMPROBANTE OFICIAL DE RESERVACION TURISTICA', 16, y);
+  doc.text(
+    isEn
+      ? 'OFFICIAL TOUR RESERVATION VOUCHER'
+      : 'COMPROBANTE OFICIAL DE RESERVACION TURISTICA',
+    16,
+    y
+  );
 
   y += 5;
   doc.setDrawColor(214, 211, 209);
@@ -124,20 +147,50 @@ export async function generateReservationPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(17, 94, 89);
-  doc.text('1. DATOS DEL VISITANTE Y PUNTO DE ENCUENTRO', 21, y + 7);
+  doc.text(
+    isEn
+      ? '1. GUEST DETAILS & MEETING POINT'
+      : '1. DATOS DEL VISITANTE Y PUNTO DE ENCUENTRO',
+    21,
+    y + 7
+  );
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(68, 64, 60);
 
-  doc.text(`Titular de la Reserva: ${data.name}`, 21, y + 15);
-  doc.text(`Contacto (Tel / Email): ${data.contact}`, 21, y + 22);
-  doc.text(`Punto de Salida (9:00 AM): ${data.pickup}`, 21, y + 29);
-
-  doc.text(`Fecha del Tour: ${data.date}`, pageWidth - 78, y + 15);
-  doc.text(`Horario Oficial: ${data.schedule}`, pageWidth - 78, y + 22);
   doc.text(
-    `Pasajeros: ${data.guests} ${data.guests === 1 ? 'persona' : 'personas'}`,
+    `${isEn ? 'Guest Name' : 'Titular de la Reserva'}: ${data.name}`,
+    21,
+    y + 15
+  );
+  doc.text(
+    `${isEn ? 'Contact (Phone / Email)' : 'Contacto (Tel / Email)'}: ${
+      data.contact
+    }`,
+    21,
+    y + 22
+  );
+  doc.text(
+    `${isEn ? 'Departure Point (9:00 AM)' : 'Punto de Salida (9:00 AM)'}: ${
+      data.pickup
+    }`,
+    21,
+    y + 29
+  );
+
+  doc.text(
+    `${isEn ? 'Tour Date' : 'Fecha del Tour'}: ${data.date}`,
+    pageWidth - 78,
+    y + 15
+  );
+  doc.text(
+    `${isEn ? 'Official Time' : 'Horario Oficial'}: ${data.schedule}`,
+    pageWidth - 78,
+    y + 22
+  );
+  doc.text(
+    `${isEn ? 'Guests' : 'Pasajeros'}: ${data.guests}`,
     pageWidth - 78,
     y + 29
   );
@@ -148,7 +201,9 @@ export async function generateReservationPdf(
   doc.setFontSize(10.5);
   doc.setTextColor(17, 94, 89);
   doc.text(
-    `2. PAQUETE SELECCIONADO (${data.packageData.numberLabel.toUpperCase()})`,
+    isEn
+      ? `2. SELECTED TOUR (${data.packageData.numberLabel.toUpperCase()})`
+      : `2. PAQUETE SELECCIONADO (${data.packageData.numberLabel.toUpperCase()})`,
     16,
     y
   );
@@ -164,7 +219,9 @@ export async function generateReservationPdf(
   doc.setFontSize(9);
   doc.setTextColor(87, 83, 78);
   const summaryLines = doc.splitTextToSize(
-    `Descripcion: ${data.packageData.itinerarySummary}`,
+    `${isEn ? 'Description' : 'Descripcion'}: ${
+      data.packageData.itinerarySummary
+    }`,
     pageWidth - 32
   );
   doc.text(summaryLines, 16, y);
@@ -172,11 +229,13 @@ export async function generateReservationPdf(
 
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(28, 25, 23);
-  doc.text(`Incluye: `, 16, y);
+  doc.text(isEn ? 'Includes: ' : 'Incluye: ', 16, y);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    `${data.packageData.includes} (Cupo diario est.: ${data.packageData.dailyCapacity} clientes)`,
-    32,
+    `${data.packageData.includes} (${
+      isEn ? 'Est. daily capacity' : 'Cupo diario est.'
+    }: ${data.packageData.dailyCapacity})`,
+    34,
     y
   );
 
@@ -185,7 +244,13 @@ export async function generateReservationPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(17, 94, 89);
-  doc.text('CRONOGRAMA DEL RECORRIDO (9:00 AM - 2:00 PM):', 16, y);
+  doc.text(
+    isEn
+      ? 'TOUR SCHEDULE (9:00 AM - 2:00 PM):'
+      : 'CRONOGRAMA DEL RECORRIDO (9:00 AM - 2:00 PM):',
+    16,
+    y
+  );
 
   y += 4;
   for (const stop of data.packageData.stops) {
@@ -214,7 +279,11 @@ export async function generateReservationPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(28, 25, 23);
-    doc.text('Notas / Preferencias del Visitante:', 16, y);
+    doc.text(
+      isEn ? 'Guest Notes / Preferences:' : 'Notas / Preferencias del Visitante:',
+      16,
+      y
+    );
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(87, 83, 78);
     const notesLines = doc.splitTextToSize(data.notes.trim(), pageWidth - 32);
@@ -232,15 +301,25 @@ export async function generateReservationPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(17, 94, 89);
-  doc.text('3. RESUMEN DE TARIFA Y DESCUENTO APLICADO', 21, y + 7);
+  doc.text(
+    isEn
+      ? '3. FARE SUMMARY & APPLIED DISCOUNT'
+      : '3. RESUMEN DE TARIFA Y DESCUENTO APLICADO',
+    21,
+    y + 7
+  );
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(41, 37, 36);
   doc.text(
-    `Tipo de Tarifa: ${
+    `${isEn ? 'Rate Type' : 'Tipo de Tarifa'}: ${
       data.isLocal
-        ? 'Tarifa Persona Local (10% de Descuento Oficial Aplicado)'
+        ? isEn
+          ? 'Local Resident Rate (10% Official Discount Applied)'
+          : 'Tarifa Persona Local (10% de Descuento Oficial Aplicado)'
+        : isEn
+        ? 'Standard Visitor / Cruise Rate'
         : 'Tarifa Estandar Visitante / Crucero'
     }`,
     21,
@@ -248,8 +327,12 @@ export async function generateReservationPdf(
   );
 
   doc.text(
-    `Precio Unitario por Persona: ${data.unitPriceFormatted}${
-      data.isLocal ? ` (Precio regular: ${data.originalUnitFormatted})` : ''
+    `${isEn ? 'Unit Price per Guest' : 'Precio Unitario por Persona'}: ${
+      data.unitPriceFormatted
+    }${
+      data.isLocal
+        ? ` (${isEn ? 'Regular' : 'Regular'}: ${data.originalUnitFormatted})`
+        : ''
     }`,
     21,
     y + 20.5
@@ -259,14 +342,20 @@ export async function generateReservationPdf(
     doc.setTextColor(17, 94, 89);
     doc.setFont('helvetica', 'bold');
     doc.text(
-      `Ahorro Total por Descuento Local (10%): -${data.savingsFormatted}`,
+      `${
+        isEn
+          ? 'Total Local Discount Savings (10%)'
+          : 'Ahorro Total por Descuento Local (10%)'
+      }: -${data.savingsFormatted}`,
       21,
       y + 27
     );
   } else {
     doc.setTextColor(87, 83, 78);
     doc.text(
-      'Recuerda: Personas locales cuentan con 10% de descuento presentando identificacion.',
+      isEn
+        ? 'Note: Local residents receive a 10% discount upon presenting local ID.'
+        : 'Recuerda: Personas locales cuentan con 10% de descuento presentando identificacion.',
       21,
       y + 27
     );
@@ -276,7 +365,12 @@ export async function generateReservationPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(87, 83, 78);
-  doc.text('TOTAL A PAGAR:', pageWidth - 22, y + 14, {align: 'right'});
+  doc.text(
+    isEn ? 'TOTAL DUE:' : 'TOTAL A PAGAR:',
+    pageWidth - 22,
+    y + 14,
+    {align: 'right'}
+  );
 
   doc.setFontSize(16);
   doc.setTextColor(17, 94, 89);
@@ -291,7 +385,7 @@ export async function generateReservationPdf(
   doc.setFontSize(8.5);
   doc.setTextColor(28, 25, 23);
   doc.text(
-    'Roatan Autentica — Redescubre tu tierra, enamorate de lo nuestro.',
+    `Roatan Autentica — ${companyInfo.slogan}`,
     pageWidth / 2,
     footerY,
     {align: 'center'}
@@ -301,13 +395,15 @@ export async function generateReservationPdf(
   doc.setFontSize(7.5);
   doc.setTextColor(120, 113, 108);
   doc.text(
-    'Valores: Compromiso, responsabilidad, honestidad, amabilidad y pasion por el turismo.',
+    companyInfo.valuesText,
     pageWidth / 2,
     footerY + 4.5,
     {align: 'center'}
   );
   doc.text(
-    'Presenta este comprobante PDF a tu guia de Roatan Autentica en el punto de salida a las 9:00 AM.',
+    isEn
+      ? 'Present this PDF voucher to your Roatan Autentica guide at the 9:00 AM departure point.'
+      : 'Presenta este comprobante PDF a tu guia de Roatan Autentica en el punto de salida a las 9:00 AM.',
     pageWidth / 2,
     footerY + 9,
     {align: 'center'}
