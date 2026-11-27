@@ -275,7 +275,7 @@ export default function RoatanAutenticaPortal() {
             >
               <Globe className="w-3.5 h-3.5" />
               <span>
-                {isEn ? 'Traducir a Español (ES)' : 'Translate to English (EN)'}
+                {isEn ? 'Traducir a(ES)' : 'Translate to (EN)'}
               </span>
             </button>
           </div>
